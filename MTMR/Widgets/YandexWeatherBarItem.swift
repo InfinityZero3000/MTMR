@@ -12,22 +12,23 @@ import CoreLocation
 class YandexWeatherBarItem: CustomButtonTouchBarItem, CLLocationManagerDelegate {
     private let activity: NSBackgroundActivityScheduler
     private let unitsStr = "°C"
+    // SF Symbols per Yandex condition.
     private let iconsSource = [
-        "clear": "☀️",
-        "mostly-clear": "🌤",
-        "partly-cloudy": "⛅️",
-        "overcast": "☁️",
-        "cloudy": "☁️",
-        "light-rain": "🌦",
-        "drizzle": "💦",
-        "rain": "🌧",
-        "heavy-rain": "⛈",
-        "storm": "🌩",
-        "thunderstorm-with-rain": "⛈",
-        "sleet": "☔️",
-        "light-snow": "❄️",
-        "snow": "🌨",
-        "fog": "🌫"
+        "clear": "sun.max",
+        "mostly-clear": "cloud.sun",
+        "partly-cloudy": "cloud.sun",
+        "overcast": "cloud",
+        "cloudy": "cloud",
+        "light-rain": "cloud.sun.rain",
+        "drizzle": "cloud.drizzle",
+        "rain": "cloud.rain",
+        "heavy-rain": "cloud.heavyrain",
+        "storm": "cloud.bolt",
+        "thunderstorm-with-rain": "cloud.bolt.rain",
+        "sleet": "cloud.sleet",
+        "light-snow": "snowflake",
+        "snow": "cloud.snow",
+        "fog": "cloud.fog",
     ]
     private var location: CLLocation!
     private var prevLocation: CLLocation!
@@ -38,7 +39,7 @@ class YandexWeatherBarItem: CustomButtonTouchBarItem, CLLocationManagerDelegate 
         activity = NSBackgroundActivityScheduler(identifier: "\(identifier.rawValue).updatecheck")
         activity.interval = interval
 
-        super.init(identifier: identifier, title: "⏳")
+        super.init(identifier: identifier, attributedTitle: .loading)
 
         let status = CLLocationManager().authorizationStatus
         if status == .restricted || status == .denied {
@@ -101,7 +102,7 @@ class YandexWeatherBarItem: CustomButtonTouchBarItem, CLLocationManagerDelegate 
 
             if temperature != nil {
                 DispatchQueue.main.async {
-                    self.setWeather(text: "\(icon ?? "?") \(temperature!)\(self.unitsStr)")
+                    self.setWeather(icon: icon, text: "\(temperature!)\(self.unitsStr)")
                 }
             }
         }
@@ -117,8 +118,13 @@ class YandexWeatherBarItem: CustomButtonTouchBarItem, CLLocationManagerDelegate 
         }
     }
 
-    func setWeather(text: String) {
-        title = text
+    func setWeather(icon: String?, text: String) {
+        // `icon` is an SF Symbol name when the condition is known, otherwise the raw condition string.
+        if let icon = icon, NSImage.touchBarSymbol(icon) != nil {
+            attributedTitle = .symbolText(icon, text)
+        } else {
+            title = "\(icon ?? "?") \(text)"
+        }
     }
 
     func defaultTapAction() {

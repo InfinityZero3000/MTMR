@@ -218,23 +218,23 @@ class SupportedTypesHolder {
         },
 
         "sleep": { _ in (
-            item: .staticButton(title: "☕️"),
+            item: .staticButton(title: ""),
             actions: [
                 Action(trigger: .singleTap, value: .shellScript(executable: "/usr/bin/pmset", parameters: ["sleepnow"]))
             ],
             legacyAction: .none,
             legacyLongAction: .none,
-            parameters: [:]
+            parameters: [.image: .image(source: NSImage(systemSymbolName: "cup.and.saucer.fill", accessibilityDescription: nil)!)]
         ) },
 
         "displaySleep": { _ in (
-            item: .staticButton(title: "☕️"),
+            item: .staticButton(title: ""),
             actions: [
                 Action(trigger: .singleTap, value: .shellScript(executable: "/usr/bin/pmset", parameters: ["displaysleepnow"]))
             ],
             legacyAction: .none,
             legacyLongAction: .none,
-            parameters: [:]
+            parameters: [.image: .image(source: NSImage(systemSymbolName: "display", accessibilityDescription: nil)!)]
         ) },
 
     ]
@@ -285,6 +285,7 @@ enum ItemType: Decodable {
     case currency(interval: Double, from: String, to: String, full: Bool)
     case inputsource
     case music(interval: Double, disableMarquee: Bool)
+    case spotify(mode: String, reactive: Bool, lyricsOffset: Double)
     case group(items: [BarItemDefinition])
     case nightShift
     case dnd
@@ -318,6 +319,9 @@ enum ItemType: Decodable {
         case autoResize
         case filter
         case disableMarquee
+        case mode
+        case reactive
+        case lyricsOffset
         case alternativeImages
         case sourceApple
         case sourceBash
@@ -344,6 +348,7 @@ enum ItemType: Decodable {
         case currency
         case inputsource
         case music
+        case spotify
         case group
         case nightShift
         case dnd
@@ -431,6 +436,12 @@ enum ItemType: Decodable {
             let interval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 5.0
             let disableMarquee = try container.decodeIfPresent(Bool.self, forKey: .disableMarquee) ?? false
             self = .music(interval: interval, disableMarquee: disableMarquee)
+
+        case .spotify:
+            let mode = try container.decodeIfPresent(String.self, forKey: .mode) ?? "both"
+            let reactive = try container.decodeIfPresent(Bool.self, forKey: .reactive) ?? true
+            let lyricsOffset = try container.decodeIfPresent(Double.self, forKey: .lyricsOffset) ?? 0
+            self = .spotify(mode: mode, reactive: reactive, lyricsOffset: lyricsOffset)
 
         case .group:
             let items = try container.decode([BarItemDefinition].self, forKey: .items)

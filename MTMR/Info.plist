@@ -26,6 +26,8 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>MTMR listens to Spotify's audio only to animate the wave on the Touch Bar. Nothing is recorded or stored.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>AppleEvents needed for correct work AppleScript</string>
 	<key>NSAppleMusicUsageDescription</key>

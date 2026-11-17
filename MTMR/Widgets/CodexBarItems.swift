@@ -372,7 +372,7 @@ final class CodexTodayBarItem: NSCustomTouchBarItem {
 
 private final class CodexTodayView: NSView {
     private let petView = CodexPetView()
-    private let messageLabel = NSTextField(labelWithString: "⏳ Crunching numbers…")
+    private let messageLabel = NSTextField(labelWithString: "Crunching numbers…")
     private let pillView = NSView()
     private let tailView = CodexSpeechTailView()
     private let switchButton = NSButton()
@@ -469,57 +469,57 @@ private final class CodexTodayView: NSView {
     /// small set of personality lines. Tapping the bubble walks the whole pool.
     private var messagePool: [String] {
         guard let snapshot = todaySnapshot else {
-            return ["⏳ Crunching numbers…", "📡 Fetching latest data!", "🧮 Counting your tokens~"]
+            return ["Crunching numbers…", "Fetching latest data!", "Counting your tokens~"]
         }
 
         let tokens = formatTokens(snapshot.totalTokens)
         let cost = "$" + String(format: "%.2f", snapshot.estimatedCost)
         var messages = [
-            "👋 Hey there~",
-            "📊 Today: \(tokens) tokens",
-            "📈 \(tokens) tokens — \(cost) spent today",
-            "🧾 Today's bill: \(cost) for \(tokens) tokens",
-            "💳 AI tab today: \(cost)"
+            "Hey there~",
+            "Today: \(tokens) tokens",
+            "\(tokens) tokens — \(cost) spent today",
+            "Today's bill: \(cost) for \(tokens) tokens",
+            "AI tab today: \(cost)"
         ]
 
         if snapshot.totalTokens < 50_000 {
-            messages += ["☕ Just warming up!", "🌱 A gentle start"]
+            messages += ["Just warming up!", "A gentle start"]
         } else if snapshot.totalTokens < 200_000 {
-            messages += ["🎯 Getting into the flow!", "💪 Solid progress today"]
+            messages += ["Getting into the flow!", "Solid progress today"]
         } else if snapshot.totalTokens < 500_000 {
-            messages += ["🔥 Busy day!", "⚡ You're on a roll!"]
+            messages += ["Busy day!", "You're on a roll!"]
         } else if snapshot.totalTokens < 2_000_000 {
-            messages += ["🚀 Heavy usage today!", "🖨 Token machine goes brrr"]
+            messages += ["Heavy usage today!", "Token machine goes brrr"]
         } else {
-            messages += ["🤯 MASSIVE day!", "🔥 Token counter on fire!"]
+            messages += ["MASSIVE day!", "Token counter on fire!"]
         }
 
         if let sevenDayTokens = snapshot.sevenDayTokens, sevenDayTokens > 0 {
-            messages.append("📅 7-day total: \(formatTokens(sevenDayTokens)) tokens")
+            messages.append("7-day total: \(formatTokens(sevenDayTokens)) tokens")
             if let activeDays = snapshot.sevenDayActiveDays, activeDays > 0 {
-                messages.append("🗓 \(activeDays) active days this week")
-                if activeDays >= 7 { messages.append("🏆 7/7 active days — perfect streak!") }
+                messages.append("\(activeDays) active days this week")
+                if activeDays >= 7 { messages.append("7/7 active days — perfect streak!") }
             }
         }
         if let thirtyDayTokens = snapshot.thirtyDayTokens, thirtyDayTokens > 0 {
-            messages.append("📆 30-day total: \(formatTokens(thirtyDayTokens)) tokens")
+            messages.append("30-day total: \(formatTokens(thirtyDayTokens)) tokens")
         }
         if let average = snapshot.thirtyDayAverage, average > 0 {
-            messages.append("📊 Averaging ~\(formatTokens(average))/day this month")
+            messages.append("Averaging ~\(formatTokens(average))/day this month")
         }
         if snapshot.conversationCount > 0 {
-            messages.append("💬 \(snapshot.conversationCount) conversations today")
+            messages.append("\(snapshot.conversationCount) conversations today")
             if snapshot.conversationCount >= 10 {
-                messages.append("🗣 \(snapshot.conversationCount) chats! Busy talker today")
+                messages.append("\(snapshot.conversationCount) chats! Busy talker today")
             }
         }
 
         messages.append(quotaMessage())
         messages += [
-            "👆 Tap me for more!",
-            "📋 I count so you don't have to",
-            "✨ Every token tells a story",
-            "🤝 Your AI spending buddy"
+            "Tap me for more!",
+            "I count so you don't have to",
+            "Every token tells a story",
+            "Your AI spending buddy"
         ]
         return messages
     }

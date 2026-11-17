@@ -37,7 +37,7 @@ class PomodoroBarItem: CustomButtonTouchBarItem, Widget {
         case none
     }
 
-    private let defaultTitle = "🍅 "
+    private var defaultTitle: NSAttributedString { .symbolText("timer") }
     private let workTime: TimeInterval
     private let restTime: TimeInterval
     private var typeTime: TimeTypes = .none
@@ -51,7 +51,7 @@ class PomodoroBarItem: CustomButtonTouchBarItem, Widget {
     init(identifier: NSTouchBarItem.Identifier, workTime: TimeInterval, restTime: TimeInterval) {
         self.workTime = workTime
         self.restTime = restTime
-        super.init(identifier: identifier, title: defaultTitle)
+        super.init(identifier: identifier, attributedTitle: .symbolText("timer"))
         actions.append(contentsOf: [
             ItemAction(trigger: .singleTap) { [weak self] in self?.startStopWork() },
             ItemAction(trigger: .longTap) { [weak self] in self?.startStopRest() }
@@ -104,14 +104,14 @@ class PomodoroBarItem: CustomButtonTouchBarItem, Widget {
         typeTime = .none
         timer?.cancel()
         timer = nil
-        title = defaultTitle
+        attributedTitle = defaultTitle
     }
 
     private func tick() {
         timeLeft -= 1
         DispatchQueue.main.async {
             if self.timeLeft >= 0 {
-                self.title = self.defaultTitle + " " + self.timeLeftString
+                self.attributedTitle = .symbolText("timer", self.timeLeftString)
             } else {
                 self.finish()
             }

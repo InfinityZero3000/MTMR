@@ -163,19 +163,19 @@ private class UpNextItem : CustomButtonTouchBarItem {
     init(event: UpNextEventModel) {
         let identifier = UpNextItem.getIdentifier(event: event)
         let title = UpNextItem.getTitle(event: event)
-        super.init(identifier: NSTouchBarItem.Identifier(rawValue: identifier), title: title)
+        super.init(identifier: NSTouchBarItem.Identifier(rawValue: identifier), attributedTitle: title)
     }
     
     required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private static func getTitle(event: UpNextEventModel) -> String {
-        var title = ""
+    private static func getTitle(event: UpNextEventModel) -> NSAttributedString {
+        var title = NSAttributedString()
         let startDateString = UpNextItem.df.string(for: event.startDate)
         switch event.sourceType {
         case .iCalendar:
-            title = String.init(format: "🗓 %@ - %@ ", event.title, startDateString!)
+            title = .symbolText("calendar", String.init(format: "%@ - %@ ", event.title, startDateString!))
         }
         return title
     }

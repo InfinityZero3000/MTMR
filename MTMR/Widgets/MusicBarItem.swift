@@ -39,7 +39,7 @@ class MusicBarItem: CustomButtonTouchBarItem {
         self.interval = interval
         self.disableMarquee = disableMarquee
 
-        super.init(identifier: identifier, title: "⏳")
+        super.init(identifier: identifier, attributedTitle: .loading)
         isBordered = false
         
         actions = [

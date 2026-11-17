@@ -12,21 +12,8 @@
   { "type": "brightnessDown", "width": 32, "bordered": false, "align": "left" },
   { "type": "brightnessUp", "width": 32, "bordered": false, "align": "left" },
 
-  // Spotify
-  {
-    "type": "appleScriptTitledButton",
-    "source": {
-      "inline": "-- Spotify is checked with pgrep and addressed only inside run script, so the button\r-- compiles without Spotify installed (a literal application \"Spotify\" makes AppleScript\r-- show a modal \"Where is Spotify?\" dialog as soon as MTMR is activated).\rtry\rdo shell script \"pgrep -xq Spotify\"\ron error\rreturn \"\"\rend try\rreturn run script \"tell application \\\"Spotify\\\" to if player state is playing then return (artist of current track) & \\\" – \\\" & (name of current track)\rreturn \\\"\\\"\"\r"
-    },
-    "action": "appleScript",
-    "actionAppleScript": {
-      "inline": "try\rdo shell script \"pgrep -xq Spotify\"\ron error\rreturn\rend try\rrun script \"tell application \\\"Spotify\\\" to if player state is playing then next track\"\r"
-    },
-    "refreshInterval": 1,
-    "image": {
-      "base64": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABABAMAAABYR2ztAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAYUExURUdwTB3WXx3UXh3VXx7XYBkXFRpVLRyURmIaeAQAAAAEdFJOUwDDO3fSqUUkAAABbklEQVRIx61VbW6DMAztoAeYNA7ApB6gkzhAWS24wIAL0HABaK6/pHFNEhy8TXu/kPzkPD/8cTj8K7KPAqB+K5NhQPCUrABCXe7HOUYYZxgVRLiG8RfY4DUgFFtC7cffAfZTFBwBdhWEKfgEq4ocEjgj4ZQifO6/QG9kkETp1dDeVWfRKx3XYSW0LoqY5kCElXDrQkyeCCuh6WL0M4nIWQIyzqixdfKU1koFDKvyCA8NJMzU4xiD+b4kfHRpsIyKc6hBwjVptFHVY51EMAINNDFGJITKDNQcdpX74Hz0CQ3rY5qwMp4EIxrlafzrsYZ2Veb0DkRgfNCUok4Y1fqEijfyi2b8RE9beWqa48Y/uvCNMcH9btfUi+/CGLR1vhL6Zz9N/vBlaCU+7lwY/cmJ67Ryen/2tj23PLqJBodZH8vgj544vOL4pxfI5acrSFxi8hrkU9TSKr78ZpnL50A8KPJJEo+afBblwyqf5j/iGys5j6ScrST2AAAAAElFTkSuQmCC"
-    }
-  },
+  // Spotify: synced lyrics + animated wave. Tap pause, double tap switch mode, long tap next.
+  { "type": "spotify", "align": "left", "width": 420, "mode": "both" },
 
   // Music
   {

@@ -514,7 +514,7 @@ final class PresetDocumentTests: XCTestCase {
         let builtIns = ["escape", "delete", "brightnessUp", "brightnessDown", "illuminationUp", "illuminationDown", "volumeDown", "volumeUp",
                         "mute", "previous", "play", "next", "sleep", "displaySleep", "exitTouchbar", "close"]
         let raw = ["staticButton", "appleScriptTitledButton", "shellScriptTitledButton", "timeButton", "battery", "cpu", "dock", "volume",
-                   "brightness", "weather", "yandexWeather", "currency", "inputsource", "music", "group", "nightShift", "dnd", "pomodoro",
+                   "brightness", "weather", "yandexWeather", "currency", "inputsource", "music", "spotify", "group", "nightShift", "dnd", "pomodoro",
                    "network", "darkMode", "swipe", "upnext"]
         XCTAssertEqual(Set(ItemCatalog.all.map(\.type)), Set(builtIns + raw))
         for type in raw { XCTAssertNotNil(ItemType.ItemTypeRaw(rawValue: type), type) }

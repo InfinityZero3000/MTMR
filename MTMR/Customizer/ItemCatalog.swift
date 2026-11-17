@@ -104,6 +104,16 @@ enum ItemCatalog {
             fields: [refresh(5), bool("disableMarquee", "Disable marquee", "Turns off the scrolling title effect.", false)],
             supportsActions: true, defaultJSON: obj("music")
         ),
+        ItemTypeInfo(
+            type: "spotify", displayName: "Spotify Lyrics", category: .media, symbolName: "waveform",
+            summary: "Synced lyrics and an animated wave for Spotify; tap pauses, double tap switches mode, long tap or swipe left skips, swipe right goes back.",
+            fields: [
+                choice("mode", "Display", ["both", "lyrics", "wave"], "Show lyrics, the wave, or both.", "both"),
+                bool("reactive", "React to audio", "Wave follows the real Spotify audio (asks for System Audio permission once); off = simulated wave.", true),
+                number("lyricsOffset", "Lyrics offset", 0, "s", "Seconds. Positive shows lyrics earlier, negative later; use it to fine-tune sync (e.g. Bluetooth speakers)."),
+            ],
+            supportsActions: false, defaultJSON: obj("spotify")
+        ),
 
         // MARK: Sliders
         ItemTypeInfo(type: "brightness", displayName: "Brightness Slider", category: .sliders, symbolName: "sun.max", summary: "Slider for the display brightness.", fields: [refresh(0.5)], supportsActions: false, defaultJSON: obj("brightness")),

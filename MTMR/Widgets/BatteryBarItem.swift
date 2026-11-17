@@ -113,11 +113,12 @@ class BatteryInfo: NSObject {
 
     public func formattedInfo() -> NSAttributedString {
         var title = ""
+        var charging = false
         getPSInfo()
 
         if ACPower == "AC Power" {
             if current < 100 {
-                title += "⚡️"
+                charging = true
             }
             timeRemaining = getFormattedTime(time: timeToFull)
         } else {
@@ -131,10 +132,11 @@ class BatteryInfo: NSObject {
             color = NSColor.red
         }
 
-        let newTitle = NSMutableAttributedString(string: title as String, attributes: [.foregroundColor: color, .font: NSFont.systemFont(ofSize: 15), .baselineOffset: 1])
+        let newTitle = NSMutableAttributedString(attributedString: .symbolText(charging ? "bolt.fill" : nil, title, color: color))
+        if charging { newTitle.replaceCharacters(in: NSRange(location: 1, length: 1), with: "") } // no gap between bolt and level
         let newTitleSecond = NSMutableAttributedString(string: timeRemaining as String, attributes: [NSAttributedString.Key.foregroundColor: color, NSAttributedString.Key.font: NSFont.systemFont(ofSize: 8, weight: .regular), NSAttributedString.Key.baselineOffset: 7])
         newTitle.append(newTitleSecond)
-        newTitle.setAlignment(.center, range: NSRange(location: 0, length: title.count))
+        newTitle.setAlignment(.center, range: NSRange(location: 0, length: newTitle.length))
         return newTitle
     }
 }

@@ -133,4 +133,30 @@ class ParseConfig: XCTestCase {
             return
         }
     }
+
+    func testSpotifyItemAndLRC() {
+        let fixture = #"[ { "type": "spotify", "mode": "lyrics" }, { "type": "spotify" } ]"#.data(using: .utf8)!
+        let result = try? JSONDecoder().decode([BarItemDefinition].self, from: fixture)
+        guard case let .spotify(mode, _, _)? = result?.first?.type, case let .spotify(defaultMode, reactive, offset)? = result?.last?.type else {
+            return XCTFail("Expected spotify items")
+        }
+        XCTAssertEqual(mode, "lyrics")
+        XCTAssertEqual(defaultMode, "both")
+        XCTAssertTrue(reactive)
+        XCTAssertEqual(offset, 0)
+
+        let lines = LRCParser.parse("[ar:x]\n[00:01.50] one\n[00:05.00][00:09.25]two\n[00:12.00]")
+        XCTAssertEqual(lines.map { $0.text }, ["one", "two", "two", ""])
+        XCTAssertNil(LRCParser.index(in: lines, at: 0.5))
+        XCTAssertEqual(LRCParser.index(in: lines, at: 6), 1)
+        XCTAssertEqual(LRCParser.index(in: lines, at: 100), 3)
+
+        // [offset:+500] makes every line appear 0.5 s sooner.
+        XCTAssertEqual(LRCParser.parse("[offset:+500]\n[00:10.00]a").first?.time ?? 0, 9.5, accuracy: 0.001)
+
+        // The version whose length matches the track wins; a far-off version is rejected.
+        let results: [[String: Any]] = [["duration": 250.0, "syncedLyrics": "[00:01.00]radio edit"], ["duration": 301.0, "syncedLyrics": "[00:01.00]album"]]
+        XCTAssertEqual(LyricsProvider.bestLyrics(results, duration: 300, tolerance: 3), "[00:01.00]album")
+        XCTAssertNil(LyricsProvider.bestLyrics(results, duration: 400, tolerance: 6))
+    }
 }

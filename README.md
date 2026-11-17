@@ -93,6 +93,7 @@ The pre-installed configuration contains less or more than you'll probably want,
 - yandexWeather
 - inputsource
 - music (tap for pause, longTap for next)
+- spotify (synced lyrics + wave; tap pause, doubleTap switch mode, swipe left = next track, swipe right = previous, longTap next)
 - dock (half-long click to open app, full-long click to kill app)
 - nightShift
 - dnd (Don't disturb)
@@ -360,6 +361,19 @@ To close a group, use the button:
   "from": "BTC",
   "to": "USD",
   "full": true // £‣1.29$
+```
+
+#### `spotify`
+
+Synced lyrics (fetched from [LRCLIB](https://lrclib.net), no account/API key) and a text equalizer wave for the Spotify desktop app. Track title/artist are sent to lrclib.net to look up lyrics. Needs the same Automation permission as `music`.
+
+```js
+{
+  "type": "spotify",
+  "align": "center",
+  "width": 300, // Optional, recommended so the bar does not resize with each lyric line
+  "mode": "both" // "both" | "lyrics" | "wave". Optional. Default "both". Double tap cycles modes
+},
 ```
 
 #### `music`

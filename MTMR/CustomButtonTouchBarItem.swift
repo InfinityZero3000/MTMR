@@ -39,6 +39,18 @@ class CustomButtonTouchBarItem: NSCustomTouchBarItem, NSGestureRecognizerDelegat
         attributedTitle = title.defaultTouchbarAttributedString
 
         super.init(identifier: identifier)
+        setupButton(title: title)
+    }
+
+    /// Same as `init(identifier:title:)` but with a rich title, e.g. one that starts with an SF Symbol.
+    init(identifier: NSTouchBarItem.Identifier, attributedTitle: NSAttributedString) {
+        self.attributedTitle = attributedTitle
+
+        super.init(identifier: identifier)
+        setupButton(title: attributedTitle.string)
+    }
+
+    private func setupButton(title: String) {
         button = CustomHeightButton(title: title, target: nil, action: nil)
 
         longClick = LongPressGestureRecognizer(target: self, action: #selector(handleGestureLong))
@@ -129,7 +141,11 @@ class CustomButtonTouchBarItem: NSCustomTouchBarItem, NSGestureRecognizerDelegat
         finishViewConfiguration()
     }
 
+    /// Extra recognizers (e.g. a swipe added by a subclass) that tap/long-press must NOT wait for.
+    var failureExemptRecognizers: [NSGestureRecognizer] = []
+
     func gestureRecognizer(_ gestureRecognizer: NSGestureRecognizer, shouldRequireFailureOf otherGestureRecognizer: NSGestureRecognizer) -> Bool {
+        if failureExemptRecognizers.contains(where: { $0 === otherGestureRecognizer }) { return false }
         if gestureRecognizer == multiClick && otherGestureRecognizer == longClick
             || gestureRecognizer == longClick && otherGestureRecognizer == multiClick // need it
         {
@@ -332,6 +348,40 @@ class LongPressGestureRecognizer: NSPressGestureRecognizer {
     deinit {
         timerInvalidate()
     }
+}
+
+// MARK: - SF Symbols in titles (replaces emoji so icons match native macOS widgets)
+
+extension NSImage {
+    /// A tinted SF Symbol sized for Touch Bar text, or nil if the symbol does not exist.
+    static func touchBarSymbol(_ name: String, pointSize: CGFloat = 15, color: NSColor = .white) -> NSImage? {
+        let config = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+        return NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(config)
+    }
+}
+
+extension NSAttributedString {
+    /// `symbol` (an SF Symbol name, optional) followed by `text`, in the standard Touch Bar style.
+    static func symbolText(_ symbol: String?, _ text: String = "", color: NSColor = .white, fontSize: CGFloat = 15) -> NSAttributedString {
+        let font = NSFont.systemFont(ofSize: fontSize, weight: .regular)
+        let attrs: [NSAttributedString.Key: Any] = [.foregroundColor: color, .font: font, .baselineOffset: 1]
+        let out = NSMutableAttributedString()
+        if let symbol = symbol, let image = NSImage.touchBarSymbol(symbol, pointSize: fontSize, color: color) {
+            let attachment = NSTextAttachment()
+            attachment.image = image
+            // Center the glyph on the text's cap height.
+            attachment.bounds = CGRect(x: 0, y: (font.capHeight - image.size.height) / 2, width: image.size.width, height: image.size.height)
+            out.append(NSAttributedString(attachment: attachment))
+            if !text.isEmpty { out.append(NSAttributedString(string: " ", attributes: attrs)) }
+        }
+        out.append(NSAttributedString(string: text, attributes: attrs))
+        out.setAlignment(.center, range: NSRange(location: 0, length: out.length))
+        return out
+    }
+
+    /// Placeholder shown while a widget loads its first value.
+    static var loading: NSAttributedString { symbolText("hourglass") }
 }
 
 extension String {

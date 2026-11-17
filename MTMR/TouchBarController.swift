@@ -51,6 +51,8 @@ extension ItemType {
             return "com.toxblh.mtmr.inputsource."
         case .music(interval: _):
             return "com.toxblh.mtmr.music."
+        case .spotify(mode: _, reactive: _, lyricsOffset: _):
+            return "com.toxblh.mtmr.spotify."
         case .group(items: _):
             return "com.toxblh.mtmr.groupBar."
         case .nightShift:
@@ -434,6 +436,8 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             barItem = InputSourceBarItem(identifier: identifier)
         case let .music(interval: interval, disableMarquee: disableMarquee):
             barItem = MusicBarItem(identifier: identifier, interval: interval, disableMarquee: disableMarquee)
+        case let .spotify(mode: mode, reactive: reactive, lyricsOffset: lyricsOffset):
+            barItem = SpotifyBarItem(identifier: identifier, mode: SpotifyBarItem.Mode(rawValue: mode) ?? .both, reactive: reactive, lyricsOffset: lyricsOffset)
         case let .group(items: items):
             barItem = GroupBarItem(identifier: identifier, items: items)
         case .nightShift:

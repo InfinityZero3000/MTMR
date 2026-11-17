@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A5B0C0E420A373A100C0EC91 /* SpotifyAudioTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B0C0E320A373A100C0EC91 /* SpotifyAudioTap.swift */; };
+		A5B0C0E120A373A100C0EC91 /* LyricsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B0C0E020A373A100C0EC91 /* LyricsProvider.swift */; };
+		A5B0C0E220A373A100C0EC91 /* LyricsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B0C0E020A373A100C0EC91 /* LyricsProvider.swift */; };
+		A5B0C0DE20A373A100C0EC91 /* SpotifyBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B0C0DF20A373A100C0EC91 /* SpotifyBarItem.swift */; };
 		9E38FC3AC94CCFBCC29CAE83 /* JSONValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E536D1101020F38CCC61AD2 /* JSONValue.swift */; };
 		7B0DEAD35F2550B6B67EAFF8 /* PresetDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6A6A0A81EDECB9CC967EEBD /* PresetDocument.swift */; };
 		8DB0AC1C23639AD2936643DE /* ItemCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4B42DDAE357CE620B5463E /* ItemCatalog.swift */; };
@@ -104,6 +108,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A5B0C0E320A373A100C0EC91 /* SpotifyAudioTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyAudioTap.swift; sourceTree = "<group>"; };
+		A5B0C0E020A373A100C0EC91 /* LyricsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LyricsProvider.swift; sourceTree = "<group>"; };
+		A5B0C0DF20A373A100C0EC91 /* SpotifyBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyBarItem.swift; sourceTree = "<group>"; };
 		5E536D1101020F38CCC61AD2 /* JSONValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONValue.swift; sourceTree = "<group>"; };
 		B6A6A0A81EDECB9CC967EEBD /* PresetDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetDocument.swift; sourceTree = "<group>"; };
 		5C4B42DDAE357CE620B5463E /* ItemCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemCatalog.swift; sourceTree = "<group>"; };
@@ -365,6 +372,9 @@
 				60669B4220AD8FA80074E817 /* GroupBarItem.swift */,
 				60F7D453208CC31400ABF5D2 /* InputSourceBarItem.swift */,
 				60C44AFC20A373A100C0EC91 /* MusicBarItem.swift */,
+				A5B0C0DF20A373A100C0EC91 /* SpotifyBarItem.swift */,
+				A5B0C0E020A373A100C0EC91 /* LyricsProvider.swift */,
+				A5B0C0E320A373A100C0EC91 /* SpotifyAudioTap.swift */,
 				B0846A742220C968000288A7 /* NetworkBarItem.swift */,
 				B08173262135F02B005D4908 /* NightShiftBarItem.swift */,
 				B08126EE217BD0B900A98970 /* PomodoroBarItem.swift */,
@@ -548,6 +558,9 @@
 				3E14F98B9685E07C4807ADC0 /* ItemPaletteView.swift in Sources */,
 				B081732C213739FE005D4908 /* DnDBarItem.swift in Sources */,
 				60C44AFD20A373A100C0EC91 /* MusicBarItem.swift in Sources */,
+				A5B0C0DE20A373A100C0EC91 /* SpotifyBarItem.swift in Sources */,
+				A5B0C0E120A373A100C0EC91 /* LyricsProvider.swift in Sources */,
+				A5B0C0E420A373A100C0EC91 /* SpotifyAudioTap.swift in Sources */,
 				B059D624205E04F3006E6B86 /* CustomButtonTouchBarItem.swift in Sources */,
 				60173D3E20C0031B002C305F /* LaunchAtLoginController.m in Sources */,
 				6027D1BA2080E52A004FFDC7 /* VolumeViewController.swift in Sources */,
@@ -588,6 +601,7 @@
 				4E32BDEB8731D140671A941F /* PresetDocumentTests.swift in Sources */,
 				36300E83209F040900B31C71 /* SupportHelpers.swift in Sources */,
 				36C2ECDE207C82DE003CDA33 /* ItemsParsing.swift in Sources */,
+				A5B0C0E220A373A100C0EC91 /* LyricsProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

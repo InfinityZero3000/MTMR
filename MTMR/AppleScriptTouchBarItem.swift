@@ -9,7 +9,7 @@ class AppleScriptTouchBarItem: CustomButtonTouchBarItem {
     init?(identifier: NSTouchBarItem.Identifier, source: SourceProtocol, interval: TimeInterval, alternativeImages: [String: SourceProtocol]) {
         self.interval = interval
         self.alternativeImages = alternativeImages
-        super.init(identifier: identifier, title: "⏳")
+        super.init(identifier: identifier, attributedTitle: .loading)
         forceHideConstraint = view.widthAnchor.constraint(equalToConstant: 0)
         title = "scheduled"
         DispatchQueue.appleScriptQueue.async {

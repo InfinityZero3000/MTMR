@@ -137,13 +137,14 @@ class ParseConfig: XCTestCase {
     func testSpotifyItemAndLRC() {
         let fixture = #"[ { "type": "spotify", "mode": "lyrics" }, { "type": "spotify" } ]"#.data(using: .utf8)!
         let result = try? JSONDecoder().decode([BarItemDefinition].self, from: fixture)
-        guard case let .spotify(mode, _, _)? = result?.first?.type, case let .spotify(defaultMode, reactive, offset)? = result?.last?.type else {
+        guard case let .spotify(mode, _, _, _)? = result?.first?.type, case let .spotify(defaultMode, reactive, offset, style)? = result?.last?.type else {
             return XCTFail("Expected spotify items")
         }
         XCTAssertEqual(mode, "lyrics")
         XCTAssertEqual(defaultMode, "both")
         XCTAssertTrue(reactive)
         XCTAssertEqual(offset, 0)
+        XCTAssertEqual(style, SpotifyStyle())
 
         let lines = LRCParser.parse("[ar:x]\n[00:01.50] one\n[00:05.00][00:09.25]two\n[00:12.00]")
         XCTAssertEqual(lines.map { $0.text }, ["one", "two", "two", ""])

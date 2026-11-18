@@ -4,6 +4,9 @@ struct AppSettings {
     @UserDefault(key: "com.toxblh.mtmr.settings.showControlStrip", defaultValue: false)
     static var showControlStripState: Bool
     
+    @UserDefault(key: "com.toxblh.mtmr.settings.touchBarEnabled", defaultValue: true)
+    static var touchBarEnabled: Bool
+
     @UserDefault(key: "com.toxblh.mtmr.settings.hapticFeedback", defaultValue: true)
     static var hapticFeedbackState: Bool
     

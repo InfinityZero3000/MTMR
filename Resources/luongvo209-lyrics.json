@@ -24,14 +24,7 @@
     }
   },
   {
-    "type": "appleScriptTitledButton",
-    "source": {
-      "inline": "set cpu to do shell script \"ps axo %cpu | awk '{s+=$1}END{print s}'\"\rreturn cpu & \"%\""
-    },
-    "action": "appleScript",
-    "actionAppleScript": {
-      "inline": "activate application \"Activity Monitor\"\rtell application \"System Events\"\r\ttell process \"Activity Monitor\"\r\t\ttell radio button \"CPU\" of radio group 1 of group 2 of toolbar 1 of window 1 to perform action \"AXPress\"\r\tend tell\rend tell"
-    },
+    "type": "cpu",
     "refreshInterval": 5,
     "align": "right",
     "image": {
@@ -41,14 +34,7 @@
     "background": "#3A3A3C"
   },
   {
-    "type": "appleScriptTitledButton",
-    "source": {
-      "inline": "set mem to do shell script \"ps -A -o %mem | awk '{s+=$1}END{print s}'\"\rreturn mem & \"%\""
-    },
-    "action": "appleScript",
-    "actionAppleScript": {
-      "inline": "activate application \"Activity Monitor\"\rtell application \"System Events\"\r\ttell process \"Activity Monitor\"\r\t\ttell radio button \"CPU\" of radio group 1 of group 2 of toolbar 1 of window 1 to perform action \"AXPress\"\r\tend tell\rend tell"
-    },
+    "type": "ram",
     "refreshInterval": 5,
     "align": "right",
     "image": {

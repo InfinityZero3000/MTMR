@@ -356,6 +356,11 @@ private struct FieldRow: View {
             }
             .labelsHidden()
             .fixedSize()
+        case .color:
+            ColorPicker("", selection: Binding(
+                get: { HexColor.color(from: object[spec.key]?.stringValue ?? spec.defaultValue?.stringValue ?? "#FFFFFF") ?? .white },
+                set: { object[spec.key] = .string(HexColor.string(from: $0)) }
+            ), supportsOpacity: false).labelsHidden()
         case .scriptSource:
             ScriptSourceEditor(object: $object, key: spec.key)
         case .stringList:

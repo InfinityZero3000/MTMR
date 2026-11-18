@@ -372,8 +372,37 @@ Synced lyrics (fetched from [LRCLIB](https://lrclib.net), no account/API key) an
   "type": "spotify",
   "align": "center",
   "width": 300, // Optional, recommended so the bar does not resize with each lyric line
-  "mode": "both" // "both" | "lyrics" | "wave". Optional. Default "both". Double tap cycles modes
+  "mode": "both", // "both" | "lyrics" | "wave". Optional. Default "both". Double tap cycles modes
+  "reactive": true, // wave follows the real Spotify audio (System Audio permission). Optional
+  "lyricsOffset": 0, // seconds, positive shows lyrics earlier. Optional
+  "textSize": 15, "lyricColor": "#FFFFFF", "waveColor": "#1DB954", "showIcon": true, // look. Optional
+  "swipeDistance": 48, // finger travel that counts as a swipe. Optional
+  "idleItems": ["clock", "battery", "weather"], // shown in turn while Spotify is closed ("system" = CPU & RAM). Optional
+  "idleInterval": 6 // seconds per idle item. Optional
 },
+```
+
+Everything above can also be changed live in the menu: **Settings…** (values set there override the preset; *Reset to preset* undoes them).
+
+#### `info`
+
+Clock, battery, weather (Open-Meteo, no account) and CPU & RAM in turn. Tap to skip to the next item.
+
+```js
+{
+  "type": "info",
+  "width": 220,
+  "show": ["clock", "battery", "weather", "system"], // Optional
+  "interval": 6 // seconds per item. Optional
+},
+```
+
+#### `spacer`
+
+An empty, borderless gap between items.
+
+```js
+{ "type": "spacer", "width": 16 },
 ```
 
 #### `music`

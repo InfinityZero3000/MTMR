@@ -29,6 +29,8 @@ struct FieldSpec: Identifiable {
         case number(range: ClosedRange<Double>?, unit: String?)
         case bool
         case choice([String])
+        /// "#RRGGBB" string edited with a color picker.
+        case color
         /// A script source object: `{"inline": "..."}`, `{"filePath": "..."}` or `{"base64": "..."}`.
         case scriptSource
         /// Array of strings (e.g. "shellArguments").
@@ -111,8 +113,29 @@ enum ItemCatalog {
                 choice("mode", "Display", ["both", "lyrics", "wave"], "Show lyrics, the wave, or both.", "both"),
                 bool("reactive", "React to audio", "Wave follows the real Spotify audio (asks for System Audio permission once); off = simulated wave.", true),
                 number("lyricsOffset", "Lyrics offset", 0, "s", "Seconds. Positive shows lyrics earlier, negative later; use it to fine-tune sync (e.g. Bluetooth speakers)."),
+                number("textSize", "Text size", 15, "pt", "Size of the lyric text."),
+                color("lyricColor", "Lyrics color", "Color of the lyric text.", "#FFFFFF"),
+                color("waveColor", "Wave color", "Color of the animated wave.", "#1DB954"),
+                bool("showIcon", "Show Spotify icon", "The icon on the left of the widget.", true),
+                number("swipeDistance", "Swipe distance", 48, "pt", "Finger travel that counts as a swipe; smaller is more sensitive."),
+                FieldSpec(key: "idleItems", label: "When Spotify is closed", kind: .stringList,
+                          help: "Shown in turn: clock, battery, weather, system. Empty list = nothing.",
+                          defaultValue: .array([.string("clock"), .string("battery"), .string("weather")])),
+                number("idleInterval", "Switch every", 6, "s", "Seconds each item stays before sliding to the next."),
             ],
             supportsActions: false, defaultJSON: obj("spotify")
+        ),
+
+        ItemTypeInfo(
+            type: "info", displayName: "Info", category: .widgets, symbolName: "info.circle",
+            summary: "Clock, battery, weather and CPU & RAM in turn; tap to skip ahead.",
+            fields: [
+                FieldSpec(key: "show", label: "Show", kind: .stringList,
+                          help: "Items in turn: clock, battery, weather, system.",
+                          defaultValue: .array([.string("clock"), .string("battery"), .string("weather")])),
+                number("interval", "Switch every", 6, "s", "Seconds each item stays before sliding to the next."),
+            ],
+            supportsActions: false, defaultJSON: obj("info", ("width", .int(220)))
         ),
 
         // MARK: Sliders
@@ -132,6 +155,7 @@ enum ItemCatalog {
         ),
         ItemTypeInfo(type: "battery", displayName: "Battery", category: .widgets, symbolName: "battery.100", summary: "Shows the battery level.", fields: [], supportsActions: true, defaultJSON: obj("battery")),
         ItemTypeInfo(type: "cpu", displayName: "CPU Load", category: .widgets, symbolName: "cpu", summary: "Shows the current CPU load.", fields: [refresh(5)], supportsActions: true, defaultJSON: obj("cpu")),
+        ItemTypeInfo(type: "ram", displayName: "RAM Usage", category: .widgets, symbolName: "memorychip", summary: "Shows the memory in use (as Activity Monitor counts it).", fields: [refresh(5)], supportsActions: true, defaultJSON: obj("ram")),
         ItemTypeInfo(
             type: "currency", displayName: "Currency Rate", category: .widgets, symbolName: "dollarsign.circle",
             summary: "Shows an exchange rate (Coinbase).",
@@ -224,6 +248,7 @@ enum ItemCatalog {
             // "items" is lifted into PresetItem.children by PresetDocument; it is here so the JSON decodes.
             defaultJSON: obj("group", ("title", .string("Group")), ("items", .array([])))
         ),
+        ItemTypeInfo(type: "spacer", displayName: "Spacer", category: .layout, symbolName: "arrow.left.and.right", summary: "An empty gap between items; set its width.", fields: [], supportsActions: false, defaultJSON: obj("spacer", ("width", .int(16)))),
         ItemTypeInfo(type: "close", displayName: "Close Group", category: .layout, symbolName: "xmark", summary: "Closes an open group and returns to the main bar.", fields: [], supportsActions: false, defaultJSON: obj("close")),
         ItemTypeInfo(
             type: "swipe", displayName: "Swipe Gesture", category: .layout, symbolName: "hand.draw",
@@ -300,6 +325,10 @@ enum ItemCatalog {
 
     private static func bool(_ key: String, _ label: String, _ help: String, _ def: Bool) -> FieldSpec {
         FieldSpec(key: key, label: label, kind: .bool, help: help, defaultValue: .bool(def))
+    }
+
+    private static func color(_ key: String, _ label: String, _ help: String, _ def: String) -> FieldSpec {
+        FieldSpec(key: key, label: label, kind: .color, help: help, defaultValue: .string(def))
     }
 
     private static func choice(_ key: String, _ label: String, _ options: [String], _ help: String, _ def: String) -> FieldSpec {

@@ -43,6 +43,7 @@ struct CustomizerView: View {
 
     @State private var selection: PresetItem.ID?
     @State private var showingPalette = false
+    @State private var showingTemplates = false
     @State private var confirmingRevert = false
     @State private var collapsedGroups: Set<PresetItem.ID> = []
 
@@ -59,10 +60,13 @@ struct CustomizerView: View {
         VStack(spacing: 0) {
             if let message = state.errorMessage { ErrorBanner(message: message) { state.errorMessage = nil } }
 
-            TouchBarPreviewView(document: document, selection: $selection)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color(NSColor.windowBackgroundColor))
+            VStack(spacing: 8) {
+                TouchBarPreviewView(document: document, selection: $selection)
+                if document.loadError == nil && !document.items.isEmpty { WidthBudgetView(document: document) }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(NSColor.windowBackgroundColor))
             Divider()
 
             if let loadError = document.loadError {
@@ -79,6 +83,9 @@ struct CustomizerView: View {
         }
         .frame(minWidth: 900, minHeight: 560)
         .toolbar { toolbarContent }
+        .sheet(isPresented: $showingTemplates) {
+            TemplateLibraryView(document: document, isPresented: $showingTemplates) { selection = nil }
+        }
         .confirmationDialog("Discard all unsaved changes?", isPresented: $confirmingRevert) {
             Button("Revert", role: .destructive) { document.revert(); selection = nil; state.errorMessage = nil }
             Button("Cancel", role: .cancel) {}
@@ -109,6 +116,19 @@ struct CustomizerView: View {
                 .disabled(selectedItem == nil)
         }
         ToolbarItemGroup {
+            Button { moveSelected(by: -1) } label: { Label("Move Earlier", systemImage: "arrow.left") }
+                .help("Move the selected item one place to the left")
+                .accessibilityLabel("Move selected item earlier")
+                .disabled(selection.map { !document.canMove(id: $0, by: -1) } ?? true)
+            Button { moveSelected(by: 1) } label: { Label("Move Later", systemImage: "arrow.right") }
+                .help("Move the selected item one place to the right")
+                .accessibilityLabel("Move selected item later")
+                .disabled(selection.map { !document.canMove(id: $0, by: 1) } ?? true)
+        }
+        ToolbarItemGroup {
+            Button { showingTemplates = true } label: { Label("Templates", systemImage: "square.grid.2x2") }
+                .help("Choose a ready-made layout, import or export presets")
+                .accessibilityLabel("Layout templates")
             Button { confirmingRevert = true } label: { Label("Revert", systemImage: "arrow.uturn.backward") }
                 .help("Discard unsaved changes")
                 .accessibilityLabel("Revert changes")
@@ -150,6 +170,11 @@ struct CustomizerView: View {
         guard let id = selection else { return }
         document.remove(id: id)
         selection = nil
+    }
+
+    private func moveSelected(by delta: Int) {
+        guard let id = selection else { return }
+        document.moveItem(id: id, by: delta)
     }
 
     private func duplicateSelected() {

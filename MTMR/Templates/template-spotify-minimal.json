@@ -1,0 +1,8 @@
+// Light layout without custom images: Esc, scrollable Dock, Spotify lyrics + wave, rotating info, display sleep.
+[
+  { "type": "escape", "width": 64 },
+  { "type": "dock", "align": "left", "autoResize": false, "width": 300 },
+  { "type": "spotify", "align": "left", "mode": "both", "width": 420 },
+  { "type": "info", "align": "right", "show": ["clock", "battery", "weather"], "width": 200 },
+  { "type": "displaySleep", "align": "right", "width": 40 }
+]

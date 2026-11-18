@@ -511,10 +511,10 @@ final class PresetDocumentTests: XCTestCase {
     func testCatalogCoversDecoderTypes() {
         // Types registered in ItemsParsing.swift (SupportedTypesHolder + ItemTypeRaw) and
         // TouchBarController ("exitTouchbar", "close"); keep in sync when the decoder grows.
-        let builtIns = ["escape", "delete", "brightnessUp", "brightnessDown", "illuminationUp", "illuminationDown", "volumeDown", "volumeUp",
+        let builtIns = ["escape", "delete", "brightnessUp", "brightnessDown", "illuminationUp", "illuminationDown", "spacer", "volumeDown", "volumeUp",
                         "mute", "previous", "play", "next", "sleep", "displaySleep", "exitTouchbar", "close"]
-        let raw = ["staticButton", "appleScriptTitledButton", "shellScriptTitledButton", "timeButton", "battery", "cpu", "dock", "volume",
-                   "brightness", "weather", "yandexWeather", "currency", "inputsource", "music", "spotify", "group", "nightShift", "dnd", "pomodoro",
+        let raw = ["staticButton", "appleScriptTitledButton", "shellScriptTitledButton", "timeButton", "battery", "cpu", "ram", "dock", "volume",
+                   "brightness", "weather", "yandexWeather", "currency", "inputsource", "music", "spotify", "info", "group", "nightShift", "dnd", "pomodoro",
                    "network", "darkMode", "swipe", "upnext"]
         XCTAssertEqual(Set(ItemCatalog.all.map(\.type)), Set(builtIns + raw))
         for type in raw { XCTAssertNotNil(ItemType.ItemTypeRaw(rawValue: type), type) }
@@ -535,5 +535,66 @@ final class PresetDocumentTests: XCTestCase {
             XCTAssertEqual(Set(keys).count, keys.count, info.type)
             XCTAssertTrue(Set(keys).isDisjoint(with: ["type", "actions", "items"]), info.type)
         }
+    }
+
+    // MARK: Width budget
+
+    private func widthItem(_ type: String, _ align: String, _ width: Int?) -> PresetItem {
+        var pairs: [(String, JSONValue)] = [("type", .string(type)), ("align", .string(align))]
+        if let width = width { pairs.append(("width", .int(Int64(width)))) }
+        return PresetItem(json: JSONObject(pairs: pairs))
+    }
+
+    func testWidthBudgetMatchesMeasuredLayout() {
+        // Measured on the real bar: 946 pt of items + 6 gaps of 8 pt = 994 pt.
+        let items = [widthItem("exitTouchbar", "left", 44), widthItem("dock", "left", 260), widthItem("spotify", "left", 434),
+                     widthItem("cpu", "right", 84), widthItem("shellScriptTitledButton", "right", 84), widthItem("displaySleep", "right", 40)]
+        XCTAssertEqual(WidthBudget.total(of: items), 994, accuracy: 0.001)
+    }
+
+    func testFitToBarShrinksTheWidestItem() {
+        let doc = PresetDocument(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("fit-\(UUID()).json"))
+        doc.items = [widthItem("exitTouchbar", "left", 44), widthItem("dock", "left", 420), widthItem("spotify", "left", 434),
+                     widthItem("cpu", "right", 84), widthItem("shellScriptTitledButton", "right", 84), widthItem("displaySleep", "right", 40)]
+        XCTAssertGreaterThan(doc.widthTotal, WidthBudget.limit)
+        XCTAssertTrue(doc.fitToBar())
+        XCTAssertLessThanOrEqual(doc.widthTotal, WidthBudget.limit)
+        XCTAssertEqual(doc.items[0].json["width"]?.doubleValue, 44) // untouched
+    }
+
+    func testMoveItemWithinItsZone() {
+        let doc = PresetDocument(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("move-\(UUID()).json"))
+        doc.items = [widthItem("battery", "left", 50), widthItem("cpu", "right", 50), widthItem("timeButton", "left", 50)]
+        let first = doc.items[0].id
+        XCTAssertFalse(doc.canMove(id: first, by: -1))
+        XCTAssertTrue(doc.canMove(id: first, by: 1))
+        doc.moveItem(id: first, by: 1)
+        XCTAssertEqual(doc.items(in: .left).map(\.type), ["timeButton", "battery"])
+        XCTAssertEqual(doc.items(in: .right).map(\.type), ["cpu"])
+    }
+
+    // MARK: Templates
+
+    func testBundledTemplatesParseDecodeAndApply() throws {
+        let dir = defaultPresetURL.deletingLastPathComponent().appendingPathComponent("Templates")
+        let files = try FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil).filter { $0.pathExtension == "json" }
+        XCTAssertEqual(files.count, 4)
+        for file in files {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            let doc = PresetDocument(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("tpl-\(UUID()).json"))
+            try doc.replaceItems(fromText: text)
+            XCTAssertFalse(doc.items.isEmpty, file.lastPathComponent)
+            XCTAssertTrue(doc.isDirty, "applying a template must leave the document revertible")
+            let strict = try JSONValue.parse(text).serialized()
+            let decoded = try JSONDecoder().decode([BarItemDefinition].self, from: Data(strict.utf8))
+            XCTAssertEqual(decoded.count, doc.items.count, file.lastPathComponent)
+        }
+    }
+
+    func testReplaceItemsRejectsNonPresets() {
+        let doc = PresetDocument(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("bad-\(UUID()).json"))
+        doc.items = [widthItem("battery", "left", 50)]
+        XCTAssertThrowsError(try doc.replaceItems(fromText: "{\"type\": \"battery\"}"))
+        XCTAssertEqual(doc.items.count, 1, "a failed apply must not touch the current items")
     }
 }

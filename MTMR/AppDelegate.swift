@@ -67,6 +67,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         CustomizerWindowController.shared.show()
     }
 
+    @objc func openSettings(_: Any?) {
+        SettingsWindowController.shared.show()
+    }
+
+    @objc func toggleTouchBarEnabled(_ item: NSMenuItem) {
+        TouchBarController.shared.setEnabled(!AppSettings.touchBarEnabled)
+    }
+
     @objc func openPreferences(_: Any?) {
         let task = Process()
         let appSupportDirectory = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first!.appending("/MTMR")
@@ -188,6 +196,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let settingSeparator = NSMenuItem(title: "Settings", action: nil, keyEquivalent: "")
         settingSeparator.isEnabled = false
 
+        let touchBarEnabled = NSMenuItem(title: "MTMR Touch Bar On", action: #selector(toggleTouchBarEnabled(_:)), keyEquivalent: "E")
+        touchBarEnabled.state = AppSettings.touchBarEnabled ? .on : .off
+        menu.addItem(touchBarEnabled)
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings(_:)), keyEquivalent: "")
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(withTitle: "Customize Touch Bar…", action: #selector(openCustomizer(_:)), keyEquivalent: ",")
         menu.addItem(withTitle: "Edit Preset File…", action: #selector(openPreferences(_:)), keyEquivalent: "")
         menu.addItem(withTitle: "Open preset", action: #selector(openPreset(_:)), keyEquivalent: "O")

@@ -15,7 +15,7 @@ import ScriptingBridge
 /// Shows one line of text. A new line crossfades in while sliding up; a line wider than the view scrolls
 /// by pixels (position animation, no per-frame layout). Edges fade out so scrolling text never hard-clips.
 final class LyricTextView: NSView {
-    private let font = NSFont.systemFont(ofSize: 15, weight: .regular)
+    private var font = NSFont.systemFont(ofSize: 15, weight: .regular)
     private var current: CALayer?
     private var currentKey = ""
     private let edgeMask = CAGradientLayer()
@@ -55,6 +55,12 @@ final class LyricTextView: NSView {
         group.duration = 0.4
         group.timingFunction = CAMediaTimingFunction(name: .easeOut)
         l.add(group, forKey: "flick")
+    }
+
+    func setFontSize(_ size: CGFloat) {
+        guard abs(size - font.pointSize) > 0.01 else { return }
+        font = NSFont.systemFont(ofSize: size, weight: .regular)
+        reset()
     }
 
     /// Forces the next `show` to rebuild the line (after the available width changed).
@@ -208,26 +214,44 @@ final class LyricTextView: NSView {
 /// Never intercepts touches (the button underneath does).
 final class SpotifyContentView: NSView {
     static let iconSize: CGFloat = 22
+    /// The album cover fills the whole Touch Bar height, like the Dock icons.
+    static let artworkSize: CGFloat = 30
+    private var hasArtwork = false
+    private var iconHeight: NSLayoutConstraint!
+    private var currentIconSize: CGFloat { hasArtwork ? Self.artworkSize : Self.iconSize }
     static let waveWidth: CGFloat = 44
     private static let gap: CGFloat = 6
     let iconView = NSImageView()
     let waveView = NSImageView()
     let lyricView = LyricTextView(frame: .zero)
     private var lyricLeading: NSLayoutConstraint!
+    private var iconWidth: NSLayoutConstraint!
+    private var waveLeading: NSLayoutConstraint!
+    private var iconVisible = true
+    /// Shown when there is no album cover (or covers are turned off).
+    var fallbackIcon: NSImage?
+    private var waveVisible = true
+    private var idle = false
 
     override init(frame: NSRect) {
         super.init(frame: frame)
         waveView.imageScaling = .scaleNone
         iconView.imageScaling = .scaleProportionallyUpOrDown
-        iconView.image = Self.spotifyIcon()
+        fallbackIcon = Self.spotifyIcon()
+        iconView.image = fallbackIcon
+        iconView.wantsLayer = true
+        iconView.layer?.masksToBounds = true
         for v in [iconView, waveView, lyricView] as [NSView] { v.translatesAutoresizingMaskIntoConstraints = false; addSubview(v) }
         lyricLeading = lyricView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8)
+        iconWidth = iconView.widthAnchor.constraint(equalToConstant: Self.iconSize)
+        iconHeight = iconView.heightAnchor.constraint(equalToConstant: Self.iconSize)
+        waveLeading = waveView.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: Self.gap)
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
             iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: Self.iconSize),
-            iconView.heightAnchor.constraint(equalToConstant: Self.iconSize),
-            waveView.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: Self.gap),
+            iconWidth,
+            iconHeight,
+            waveLeading,
             waveView.centerYAnchor.constraint(equalTo: centerYAnchor),
             waveView.widthAnchor.constraint(equalToConstant: Self.waveWidth),
             waveView.heightAnchor.constraint(equalToConstant: 22),
@@ -250,10 +274,40 @@ final class SpotifyContentView: NSView {
         return NSImage(systemSymbolName: "music.note", accessibilityDescription: nil)
     }
 
-    func setWaveVisible(_ visible: Bool) {
-        waveView.isHidden = !visible
-        let iconEnd = 4 + Self.iconSize + Self.gap
-        lyricLeading.constant = visible ? iconEnd + Self.waveWidth + 8 : iconEnd + 2
+    /// Album cover with softly rounded corners instead of the app icon; nil restores the app icon.
+    func setArtwork(_ image: NSImage?) {
+        let had = hasArtwork
+        hasArtwork = image != nil
+        iconView.layer?.cornerRadius = hasArtwork ? 5 : 0
+        if had != hasArtwork { relayout() }
+        let new = image ?? fallbackIcon
+        guard iconView.image !== new else { return }
+        let fade = CATransition(); fade.type = .fade; fade.duration = 0.3
+        iconView.layer?.add(fade, forKey: "artwork")
+        iconView.image = new
+    }
+
+    func setWaveVisible(_ visible: Bool) { waveVisible = visible; relayout() }
+    func setIconVisible(_ visible: Bool) { iconVisible = visible; relayout() }
+    /// Spotify is not running: no Spotify icon, no wave, the text area takes the whole width.
+    func setIdle(_ value: Bool) {
+        guard value != idle else { return }
+        idle = value
+        relayout()
+    }
+
+    private func relayout() {
+        let showIcon = iconVisible && !idle
+        let showWave = waveVisible && !idle
+        waveView.isHidden = !showWave
+        iconView.isHidden = !showIcon
+        iconWidth.constant = showIcon ? currentIconSize : 0
+        iconHeight.constant = currentIconSize
+        waveLeading.constant = showIcon ? Self.gap : 0
+        let iconEnd = 4 + (showIcon ? currentIconSize + Self.gap : 0)
+        lyricLeading.constant = showWave ? iconEnd + Self.waveWidth + 8 : (idle ? 8 : iconEnd + 2)
+        layoutSubtreeIfNeeded()
+        lyricView.reset() // the available width changed
     }
 }
 
@@ -265,7 +319,6 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
     }
 
     private static let bundleId = "com.spotify.client"
-    private static let green = NSColor(srgbRed: 0.114, green: 0.725, blue: 0.329, alpha: 1)
     private static let waveSize = NSSize(width: 44, height: 22)
 
     private var mode: Mode
@@ -274,15 +327,14 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
     private var tickCount = 0
     private var phase = 0.0
     private var bandAmp = [0.0, 0.0, 0.0] // eased bass/mid/high energy, so the layers swell and settle instead of snapping
-    private let audioTap: AudioLevelSource?
+    private var audioTap: AudioLevelSource?
+    private var settingsObserver: NSObjectProtocol?
     private var tapFailures = 0
-    private let lyricsOffset: TimeInterval
     private enum Automation { case unknown, granted, denied }
     private var automation = Automation.unknown
     private var askingAutomation = false
     private var swipeFired = false
     private var suppressTapsUntil = Date.distantPast
-    private static let swipeThreshold: CGFloat = 48
     private var lastAutomationCheck = Date.distantPast
     private var lastReported = -1.0
     /// Lines are shown slightly early: the crossfade takes ~0.35 s to settle and reading needs a moment.
@@ -295,25 +347,30 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
     private var syncedPosition: TimeInterval = 0
     private var syncedAt = Date()
     private var lines: [LyricLine] = []
+    private var artworkURL = ""
+    private var artworkImage: NSImage?
+    private static var artworkCache: [String: NSImage] = [:]
 
     /// A preset "image" replaces the default Spotify app icon; the button itself stays image-free.
     override var image: NSImage? {
         didSet {
             guard let custom = image else { return }
-            content.iconView.image = custom
+            content.fallbackIcon = custom
+            if artworkImage == nil { content.iconView.image = custom }
             super.image = nil // through the base setter, so the button really drops it
         }
     }
 
-    init(identifier: NSTouchBarItem.Identifier, mode: Mode, reactive: Bool = true, lyricsOffset: TimeInterval = 0) {
+    init(identifier: NSTouchBarItem.Identifier, mode: Mode, reactive: Bool = true, lyricsOffset: TimeInterval = 0, style: SpotifyStyle = SpotifyStyle()) {
         self.mode = mode
-        self.lyricsOffset = lyricsOffset
-        self.audioTap = reactive ? makeSpotifyAudioTap() : nil
+        SpotifySettings.shared.registerPreset(mode: mode.rawValue, reactive: reactive, offset: lyricsOffset, style: style)
         super.init(identifier: identifier, attributedTitle: .symbolText("music.note"))
         isBordered = false
         actions = [
             ItemAction(trigger: .singleTap) { [weak self] in
-                guard let self = self, Date() > self.suppressTapsUntil, !self.openSettingsIfDenied() else { return }
+                guard let self = self, Date() > self.suppressTapsUntil else { return }
+                if !self.running { self.advanceIdle(); return } // Spotify closed: tap = next info
+                guard !self.openSettingsIfDenied() else { return }
                 self.app()?.playpause?()
             },
             ItemAction(trigger: .doubleTap) { [weak self] in
@@ -327,6 +384,10 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
         ]
         finishViewConfiguration = { [weak self] in self?.attachContent() } // the button is rebuilt when e.g. "bordered" is applied
         attachContent()
+        applySettings()
+        settingsObserver = NotificationCenter.default.addObserver(forName: .spotifySettingsChanged, object: nil, queue: .main) { [weak self] _ in
+            self?.applySettings()
+        }
         timer = Timer.scheduledTimer(withTimeInterval: 1 / fps, repeats: true) { [weak self] _ in self?.onTick() }
         timer?.tolerance = 0.005
         poll()
@@ -334,7 +395,29 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
 
     required init?(coder _: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    deinit { timer?.invalidate(); audioTap?.stop() }
+    deinit {
+        timer?.invalidate()
+        audioTap?.stop()
+        if let o = settingsObserver { NotificationCenter.default.removeObserver(o) }
+    }
+
+    /// Applies the values from the Settings window (or the preset) to the running widget.
+    private func applySettings() {
+        let s = SpotifySettings.shared
+        mode = Mode(rawValue: s.mode) ?? .both
+        content.setWaveVisible(mode != .lyrics)
+        content.setIconVisible(s.showIcon)
+        if !artworkURL.isEmpty || artworkImage != nil { loadArtwork(artworkURL) } // artwork toggled
+        content.lyricView.setFontSize(CGFloat(s.textSize))
+        if s.reactive {
+            if audioTap == nil { audioTap = makeSpotifyAudioTap(); tapFailures = 0 }
+        } else {
+            audioTap?.stop()
+            audioTap = nil
+        }
+        content.layoutSubtreeIfNeeded()
+        content.lyricView.reset()
+    }
 
     private func attachContent() {
         guard content.superview !== view else { return }
@@ -369,7 +452,7 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
         case .changed:
             guard !swipeFired else { return }
             let dx = g.translation(in: g.view).x
-            guard abs(dx) > Self.swipeThreshold else { return }
+            guard abs(dx) > CGFloat(SpotifySettings.shared.swipeDistance) else { return }
             swipeFired = true
             suppressTapsUntil = Date().addingTimeInterval(0.6) // the touch must not also count as a tap
             if openSettingsIfDenied() { return }
@@ -435,7 +518,7 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
         return a
     }
 
-    private func cycleMode() { mode = mode.next; content.setWaveVisible(mode != .lyrics); content.layoutSubtreeIfNeeded(); content.lyricView.reset(); render() }
+    private func cycleMode() { SpotifySettings.shared.mode = mode.next.rawValue } // saved, and applySettings() updates the widget
 
     private func onTick() {
         tickCount += 1
@@ -465,6 +548,7 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
             tapFailures = 0
             let extra = (track as? SpotifyTrackDetails)
             album = extra?.album ?? ""
+            loadArtwork(extra?.artworkUrl ?? "")
             duration = Double(extra?.duration ?? 0) / 1000
             lines = LyricsProvider.shared.cached(artist: artist, title: name) ?? []
             if !name.isEmpty {
@@ -474,6 +558,25 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
                 }
             }
         }
+    }
+
+    /// Album cover from the track's public artwork URL, cached per URL; falls back to the app icon on any failure.
+    private func loadArtwork(_ urlString: String) {
+        artworkURL = urlString
+        guard SpotifySettings.shared.showArtwork, !urlString.isEmpty, let url = URL(string: urlString) else {
+            artworkImage = nil; content.setArtwork(nil); return
+        }
+        if let cached = Self.artworkCache[urlString] { artworkImage = cached; content.setArtwork(cached); return }
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            let image = data.flatMap { NSImage(data: $0) }
+            DispatchQueue.main.async {
+                guard let self = self, self.artworkURL == urlString, let image = image else { return }
+                if Self.artworkCache.count > 30 { Self.artworkCache.removeAll() }
+                Self.artworkCache[urlString] = image
+                self.artworkImage = image
+                self.content.setArtwork(image)
+            }
+        }.resume()
     }
 
     /// Listen to Spotify's audio only while it is playing; give up quietly after a few failed attempts.
@@ -513,14 +616,14 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
 
     /// Playback position used to pick the lyric line.
     private var position: TimeInterval {
-        (playing ? syncedPosition + Date().timeIntervalSince(syncedAt) : syncedPosition) + lyricsOffset + Self.displayLead
+        (playing ? syncedPosition + Date().timeIntervalSince(syncedAt) : syncedPosition) + SpotifySettings.shared.lyricsOffset + Self.displayLead
     }
 
     // MARK: rendering
 
     /// Layered sine waves with a tapered envelope (flat at both ends), drawn vector so it stays crisp on Retina.
     private func waveImage() -> NSImage {
-        let amps = bandAmp, ph = phase
+        let amps = bandAmp, ph = phase, waveColor = SpotifySettings.shared.waveColor
         return NSImage(size: Self.waveSize, flipped: false) { rect in
             let mid = rect.midY, maxA = rect.height / 2 - 1.5
             let layers: [(freq: Double, speed: Double, gain: Double, alpha: CGFloat, width: CGFloat)] = [
@@ -542,7 +645,7 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
                     x += 1
                 }
                 path.lineWidth = l.width
-                Self.green.withAlphaComponent(l.alpha).setStroke()
+                waveColor.withAlphaComponent(l.alpha).setStroke()
                 path.stroke()
             }
             return true
@@ -560,8 +663,36 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
         return (lines[i].text, nil, (end - lines[i].time) * 0.85 - 0.5)
     }
 
+    // MARK: idle info (Spotify not running)
+
+    private var idleIndex = 0
+    private var idleSince = Date()
+    private var wasIdle = false
+
+    private func advanceIdle() {
+        idleIndex += 1
+        idleSince = Date()
+    }
+
     private func render() {
-        if running, automation == .denied {
+        content.setIdle(!running)
+        if !running {
+            content.waveView.image = nil
+            let now = Date()
+            if !wasIdle { wasIdle = true; idleIndex = 0; idleSince = now }
+            let lines = IdleInfoProvider.shared.lines(for: SpotifySettings.shared.idleItems)
+            if lines.count > 1, now.timeIntervalSince(idleSince) >= SpotifySettings.shared.idleInterval { advanceIdle() }
+            let base = SpotifySettings.shared.lyricColor
+            if lines.isEmpty {
+                content.lyricView.show("", color: base, scrollDuration: nil)
+            } else {
+                let line = lines[idleIndex % lines.count]
+                content.lyricView.show(line.text, symbol: line.symbol, animated: false, color: base, scrollDuration: nil)
+            }
+            return
+        }
+        wasIdle = false
+        if automation == .denied {
             content.waveView.image = nil
             content.lyricView.show("Tap to allow MTMR to control Spotify", color: NSColor.systemYellow, scrollDuration: nil)
             return
@@ -588,7 +719,8 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
 
         // Text: no-op unless the line changed, so the animation is driven by Core Animation, not by this timer.
         let d = displayLine()
-        let color = mode == .wave ? NSColor.white.withAlphaComponent(0.7) : NSColor.white
+        let base = SpotifySettings.shared.lyricColor
+        let color = mode == .wave ? base.withAlphaComponent(0.7) : base
         content.lyricView.show(d.text, symbol: d.symbol, animated: playing, color: color, scrollDuration: d.scroll)
     }
 }
@@ -605,6 +737,7 @@ extension SBApplication: SpotifyPlayback {}
 @objc protocol SpotifyTrackDetails {
     @objc optional var album: String { get }
     @objc optional var duration: Int { get } // milliseconds
+    @objc optional var artworkUrl: String { get }
 }
 
 extension SBObject: SpotifyTrackDetails {}

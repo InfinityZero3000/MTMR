@@ -31,6 +31,8 @@ extension ItemType {
             return "com.toxblh.mtmr.battery."
         case .cpu(refreshInterval: _):
             return "com.toxblh.mtmr.cpu."
+        case .ram(refreshInterval: _):
+            return "com.toxblh.mtmr.ram."
         case .codexToday(refreshInterval: _):
             return "com.toxblh.mtmr.codexToday."
         case .codexQuota(refreshInterval: _):
@@ -51,8 +53,10 @@ extension ItemType {
             return "com.toxblh.mtmr.inputsource."
         case .music(interval: _):
             return "com.toxblh.mtmr.music."
-        case .spotify(mode: _, reactive: _, lyricsOffset: _):
+        case .spotify(mode: _, reactive: _, lyricsOffset: _, style: _):
             return "com.toxblh.mtmr.spotify."
+        case .info(show: _, interval: _):
+            return "com.toxblh.mtmr.info."
         case .group(items: _):
             return "com.toxblh.mtmr.groupBar."
         case .nightShift:
@@ -217,7 +221,18 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
         updateActiveApp()
     }
 
+    /// Master switch from the menu / Settings: hides or shows the whole MTMR Touch Bar.
+    func setEnabled(_ enabled: Bool) {
+        AppSettings.touchBarEnabled = enabled
+        updateActiveApp()
+        (NSApp.delegate as? AppDelegate)?.createMenu()
+    }
+
     func updateActiveApp() {
+        if !AppSettings.touchBarEnabled {
+            if isTouchBarPresented { dismissTouchBar() }
+            return
+        }
         if frontmostApplicationIdentifier != nil && blacklistAppIdentifiers.firstIndex(of: frontmostApplicationIdentifier!) != nil {
             if isTouchBarPresented {
                 dismissTouchBar()
@@ -355,6 +370,10 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
     }
 
     @objc private func presentTouchBar() {
+        if !AppSettings.touchBarEnabled { // the "MT" button on the Control Strip turns MTMR back on
+            AppSettings.touchBarEnabled = true
+            (NSApp.delegate as? AppDelegate)?.createMenu()
+        }
         if AppSettings.showControlStripState {
             presentSystemModal(touchBar, systemTrayItemIdentifier: .controlStripItem)
         } else {
@@ -400,6 +419,8 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             barItem = BatteryBarItem(identifier: identifier)
         case let .cpu(refreshInterval: refreshInterval):
             barItem = CPUBarItem(identifier: identifier, refreshInterval: refreshInterval)
+        case let .ram(refreshInterval: refreshInterval):
+            barItem = RAMBarItem(identifier: identifier, refreshInterval: refreshInterval)
         case let .codexToday(refreshInterval: refreshInterval):
             barItem = CodexTodayBarItem(identifier: identifier, refreshInterval: refreshInterval)
         case let .codexQuota(refreshInterval: refreshInterval):
@@ -436,8 +457,10 @@ class TouchBarController: NSObject, NSTouchBarDelegate {
             barItem = InputSourceBarItem(identifier: identifier)
         case let .music(interval: interval, disableMarquee: disableMarquee):
             barItem = MusicBarItem(identifier: identifier, interval: interval, disableMarquee: disableMarquee)
-        case let .spotify(mode: mode, reactive: reactive, lyricsOffset: lyricsOffset):
-            barItem = SpotifyBarItem(identifier: identifier, mode: SpotifyBarItem.Mode(rawValue: mode) ?? .both, reactive: reactive, lyricsOffset: lyricsOffset)
+        case let .spotify(mode: mode, reactive: reactive, lyricsOffset: lyricsOffset, style: style):
+            barItem = SpotifyBarItem(identifier: identifier, mode: SpotifyBarItem.Mode(rawValue: mode) ?? .both, reactive: reactive, lyricsOffset: lyricsOffset, style: style)
+        case let .info(show: show, interval: interval):
+            barItem = InfoBarItem(identifier: identifier, show: show, interval: interval)
         case let .group(items: items):
             barItem = GroupBarItem(identifier: identifier, items: items)
         case .nightShift:

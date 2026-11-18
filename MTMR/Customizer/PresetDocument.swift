@@ -111,6 +111,20 @@ final class PresetDocument: ObservableObject {
         }
     }
 
+    /// Replaces all items with those of `text` (a preset, comments allowed) and marks the document dirty,
+    /// so the result can still be reviewed, saved or reverted. Throws if the text is not a valid preset.
+    func replaceItems(fromText text: String) throws {
+        let root = try JSONValue.parse(text)
+        guard case let .array(elements) = root else {
+            throw PresetDocumentError.message("The preset must be a JSON array of items at the top level.")
+        }
+        let parsed = try elements.enumerated().map { index, element in
+            try PresetDocument.makeItem(from: element, path: "Item \(index + 1)")
+        }
+        items = parsed
+        loadError = nil
+    }
+
     /// Discards unsaved edits (same as `load()`).
     func revert() { load() }
 

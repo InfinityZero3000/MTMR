@@ -65,6 +65,17 @@ typealias ParametersDecoder = (Decoder) throws -> (
     parameters: [GeneralParameters.CodingKeys: GeneralParameter]
 )
 
+/// Optional look & behaviour overrides of the Spotify widget (all nil = the widget's own defaults).
+struct SpotifyStyle: Equatable {
+    var textSize: Double?
+    var waveColor: String?
+    var lyricColor: String?
+    var showIcon: Bool?
+    var swipeDistance: Double?
+    var idleItems: [String]?
+    var idleInterval: Double?
+}
+
 class SupportedTypesHolder {
     private var supportedTypes: [String: ParametersDecoder] = [
         "escape": { _ in (
@@ -217,6 +228,15 @@ class SupportedTypesHolder {
             )
         },
 
+        // Empty, borderless gap; give it a "width".
+        "spacer": { _ in (
+            item: .staticButton(title: ""),
+            actions: [],
+            legacyAction: .none,
+            legacyLongAction: .none,
+            parameters: [.bordered: .bordered(false)]
+        ) },
+
         "sleep": { _ in (
             item: .staticButton(title: ""),
             actions: [
@@ -275,6 +295,7 @@ enum ItemType: Decodable {
     case timeButton(formatTemplate: String, timeZone: String?, locale: String?)
     case battery
     case cpu(refreshInterval: Double)
+    case ram(refreshInterval: Double)
     case codexToday(refreshInterval: Double)
     case codexQuota(refreshInterval: Double)
     case dock(autoResize: Bool, filter: String?)
@@ -285,7 +306,8 @@ enum ItemType: Decodable {
     case currency(interval: Double, from: String, to: String, full: Bool)
     case inputsource
     case music(interval: Double, disableMarquee: Bool)
-    case spotify(mode: String, reactive: Bool, lyricsOffset: Double)
+    case spotify(mode: String, reactive: Bool, lyricsOffset: Double, style: SpotifyStyle)
+    case info(show: [String], interval: Double)
     case group(items: [BarItemDefinition])
     case nightShift
     case dnd
@@ -322,6 +344,15 @@ enum ItemType: Decodable {
         case mode
         case reactive
         case lyricsOffset
+        case textSize
+        case waveColor
+        case lyricColor
+        case showIcon
+        case swipeDistance
+        case idleItems
+        case idleInterval
+        case show
+        case interval
         case alternativeImages
         case sourceApple
         case sourceBash
@@ -338,6 +369,7 @@ enum ItemType: Decodable {
         case timeButton
         case battery
         case cpu
+        case ram
         case codexToday
         case codexQuota
         case dock
@@ -349,6 +381,7 @@ enum ItemType: Decodable {
         case inputsource
         case music
         case spotify
+        case info
         case group
         case nightShift
         case dnd
@@ -390,6 +423,10 @@ enum ItemType: Decodable {
         case .cpu:
             let refreshInterval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 5.0
             self = .cpu(refreshInterval: refreshInterval)
+
+        case .ram:
+            let refreshInterval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 5.0
+            self = .ram(refreshInterval: refreshInterval)
 
         case .codexToday:
             let refreshInterval = try container.decodeIfPresent(Double.self, forKey: .refreshInterval) ?? 10.0
@@ -441,7 +478,21 @@ enum ItemType: Decodable {
             let mode = try container.decodeIfPresent(String.self, forKey: .mode) ?? "both"
             let reactive = try container.decodeIfPresent(Bool.self, forKey: .reactive) ?? true
             let lyricsOffset = try container.decodeIfPresent(Double.self, forKey: .lyricsOffset) ?? 0
-            self = .spotify(mode: mode, reactive: reactive, lyricsOffset: lyricsOffset)
+            let style = SpotifyStyle(
+                textSize: try container.decodeIfPresent(Double.self, forKey: .textSize),
+                waveColor: try container.decodeIfPresent(String.self, forKey: .waveColor),
+                lyricColor: try container.decodeIfPresent(String.self, forKey: .lyricColor),
+                showIcon: try container.decodeIfPresent(Bool.self, forKey: .showIcon),
+                swipeDistance: try container.decodeIfPresent(Double.self, forKey: .swipeDistance),
+                idleItems: try container.decodeIfPresent([String].self, forKey: .idleItems),
+                idleInterval: try container.decodeIfPresent(Double.self, forKey: .idleInterval)
+            )
+            self = .spotify(mode: mode, reactive: reactive, lyricsOffset: lyricsOffset, style: style)
+
+        case .info:
+            let show = try container.decodeIfPresent([String].self, forKey: .show) ?? ["clock", "battery", "weather"]
+            let interval = try container.decodeIfPresent(Double.self, forKey: .interval) ?? 6
+            self = .info(show: show, interval: interval)
 
         case .group:
             let items = try container.decode([BarItemDefinition].self, forKey: .items)

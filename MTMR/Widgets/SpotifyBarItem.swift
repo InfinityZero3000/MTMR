@@ -515,10 +515,17 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
 
     private func app() -> (SpotifyApplication & SpotifyPlayback)? {
         guard let a = SBApplication(bundleIdentifier: Self.bundleId), a.isRunning else { return nil }
+        a.timeout = 60 // a stuck Spotify must not block the Touch Bar for the default two minutes
         return a
     }
 
-    private func cycleMode() { SpotifySettings.shared.mode = mode.next.rawValue } // saved, and applySettings() updates the widget
+    /// Double tap: temporary switch (until the next launch or Settings change). It is not saved on purpose, so an
+    /// accidental double tap can never leave the widget stuck in wave-only mode without lyrics.
+    private func cycleMode() {
+        mode = mode.next
+        content.setWaveVisible(mode != .lyrics)
+        content.lyricView.reset()
+    }
 
     private func onTick() {
         tickCount += 1
@@ -526,19 +533,67 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
         render()
     }
 
+    private struct Snapshot {
+        var artist = "", name = "", album = "", artworkUrl = ""
+        var duration = 0 // ms
+        var state = 0
+        var position: TimeInterval = 0
+        var sampledAt = Date()
+    }
+
+    /// Spotify is read on a background queue with a short Apple Event timeout: a busy, hung or quitting Spotify
+    /// must never freeze the Touch Bar (a synchronous Apple Event can block for minutes).
+    private let pollQueue = DispatchQueue(label: "mtmr.spotify.poll", qos: .userInitiated)
+    private var polling = false
+    private var readerApp: (SpotifyApplication & SpotifyPlayback)? // pollQueue only
+
+    private func readSnapshot() -> Snapshot? {
+        if readerApp == nil, let sb = SBApplication(bundleIdentifier: Self.bundleId) {
+            sb.timeout = 60 // ticks = 1 s
+            readerApp = sb
+        }
+        guard let a = readerApp else { return nil }
+        let before = Date()
+        var snap = Snapshot()
+        let track = a.currentTrack
+        snap.artist = track?.artist ?? ""
+        snap.name = track?.name ?? ""
+        let extra = track as? SpotifyTrackDetails
+        snap.album = extra?.album ?? ""
+        snap.duration = extra?.duration ?? 0
+        snap.artworkUrl = extra?.artworkUrl ?? ""
+        snap.state = a.playerState ?? 0
+        snap.position = a.playerPosition ?? 0
+        // The answer describes the moment halfway through the (blocking) Apple Event round trip.
+        snap.sampledAt = Date(timeIntervalSince1970: (before.timeIntervalSince1970 + Date().timeIntervalSince1970) / 2)
+        return snap
+    }
+
     private func poll() {
-        guard let a = app() else { running = false; playing = false; name = ""; artist = ""; lines = []; audioTap?.stop(); return }
+        // Quit detection does not need Apple Events: ask the system directly, so it is instant and never blocks.
+        guard !NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleId).isEmpty else {
+            running = false; playing = false; name = ""; artist = ""; lines = []; audioTap?.stop()
+            return
+        }
         running = true
         checkAutomation()
         if automation == .denied { return } // nothing readable; render() explains how to fix it
-        let before = Date()
-        let track = a.currentTrack
-        let newArtist = track?.artist ?? "", newName = track?.name ?? ""
-        let nowPlaying = a.playerState == 0x6b505350 // 'kPSP'
-        let reported = a.playerPosition ?? 0
-        // The answer describes the moment halfway through the (blocking) Apple Event round trip.
-        let sampledAt = Date(timeIntervalSince1970: (before.timeIntervalSince1970 + Date().timeIntervalSince1970) / 2)
-        syncClock(reported: reported, at: sampledAt, nowPlaying: nowPlaying)
+        guard !polling else { return }
+        polling = true
+        pollQueue.async { [weak self] in
+            let snap = self?.readSnapshot()
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.polling = false
+                if let snap = snap, self.running { self.apply(snap) }
+            }
+        }
+    }
+
+    private func apply(_ snap: Snapshot) {
+        let newArtist = snap.artist, newName = snap.name
+        let nowPlaying = snap.state == 0x6b505350 // 'kPSP'
+        syncClock(reported: snap.position, at: snap.sampledAt, nowPlaying: nowPlaying)
         playing = nowPlaying
 
         updateAudioTap()
@@ -546,10 +601,9 @@ final class SpotifyBarItem: CustomButtonTouchBarItem {
         if newArtist != artist || newName != name {
             artist = newArtist; name = newName
             tapFailures = 0
-            let extra = (track as? SpotifyTrackDetails)
-            album = extra?.album ?? ""
-            loadArtwork(extra?.artworkUrl ?? "")
-            duration = Double(extra?.duration ?? 0) / 1000
+            album = snap.album
+            loadArtwork(snap.artworkUrl)
+            duration = Double(snap.duration) / 1000
             lines = LyricsProvider.shared.cached(artist: artist, title: name) ?? []
             if !name.isEmpty {
                 LyricsProvider.shared.fetch(artist: artist, title: name, album: album, duration: duration) { [weak self] in
